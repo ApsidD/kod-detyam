@@ -26,6 +26,7 @@
       };
 
       var popT = -1, конфетти = [], AC = null, читалкаТекст = "";
+      var свойФон = (опции.фон === "свой") ? { верх: "#7EC8FF", низ: "#CDEEFF" } : null;
       var цвета = ["#FBBF24", "#F472B6", "#34D399", "#60A5FA", "#FB7185", "#A78BFA"];
 
       function поп() { popT = performance.now(); }
@@ -73,7 +74,11 @@
 
       function кадр(now) {
         ctx.clearRect(0, 0, W, H);
-        if (опции.фон === "мир") {
+        if (свойФон) {
+          var cg = ctx.createLinearGradient(0, 0, 0, H);
+          cg.addColorStop(0, свойФон.верх); cg.addColorStop(1, свойФон.низ);
+          ctx.fillStyle = cg; ctx.fillRect(0, 0, W, H);
+        } else if (опции.фон === "мир") {
           var s = ctx.createLinearGradient(0, 0, 0, ГОР); s.addColorStop(0, "#7EC8FF"); s.addColorStop(1, "#CDEEFF");
           ctx.fillStyle = s; ctx.fillRect(0, 0, W, ГОР);
           var gr = ctx.createLinearGradient(0, ГОР, 0, H); gr.addColorStop(0, "#82CC6C"); gr.addColorStop(1, "#57A64B");
@@ -134,7 +139,8 @@
         бип: function () { звук([660]); },
         пип: function () { звук([880], 0.1); },
         фанфары: function () { звук([523, 659, 784, 1047], 0.16); },
-        установитьЧиталку: function (txt) { читалкаТекст = txt || ""; }
+        установитьЧиталку: function (txt) { читалкаТекст = txt || ""; },
+        установитьФон: function (верх, низ) { свойФон = { верх: верх, низ: низ }; }
       };
     }
   };

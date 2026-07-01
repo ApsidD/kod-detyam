@@ -117,7 +117,7 @@
       }
 
       function построить() {
-        апи = к.сборка(дв.мир) || {};
+        апи = к.сборка(дв.мир, дв) || {};
         var имена = Object.keys(апи);
         var f = new Function(имена.join(","), код.value);
         f.apply(null, имена.map(function (k) { return апи[k]; }));
