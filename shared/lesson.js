@@ -1,6 +1,9 @@
 /* Каркас урока. Строит всю общую вёрстку и логику из конфига —
    в самом файле урока остаётся только его специфика (см. lessons/*.html).
-   Прогресс хранится в localStorage под ключом kod-detyam:progress. */
+   Прогресс хранится в localStorage под ключом kod-detyam:progress.
+   Две моды панели:
+     - textarea (к.сборка + к.стартовыйКод): ребёнок правит текст, жмёт Запуск.
+     - слоты   (к.строкиКода + к.применить): ручки прямо в коде, всё живо, без Запуска. */
 (function () {
   "use strict";
   var КЛЮЧ = "kod-detyam:progress";
@@ -10,15 +13,30 @@
     try { var p = загрузитьПрогресс(); p[номер] = { готов: true, когда: Date.now() }; localStorage.setItem(КЛЮЧ, JSON.stringify(p)); } catch (e) {}
   }
 
-  function экр(текст) { var d = document.createElement("div"); d.innerHTML = текст; return d; }
   function эл(id) { return document.getElementById(id); }
   function div(cls) { var d = document.createElement("div"); d.className = cls; return d; }
+  function спан(cls, текст) { var s = document.createElement("span"); s.className = cls; if (текст != null) s.textContent = текст; return s; }
 
   function разметка(к, инфо, следующий) {
     var название = инфо ? инфо.название : ("Урок " + к.номер);
     var следБтн = следующий
       ? '<a class="дальше" href="' + следующий.файл + '">Дальше: ' + следующий.название + ' →</a>'
       : '<a class="дальше" href="../index.html">← К программе</a>';
+    var панель = к.строкиКода
+      ? '<div class="панель">' +
+          '<h3>Собери код</h3>' +
+          '<div class="код-слоты" id="код-слоты"></div>' +
+        '</div>'
+      : '<div class="панель">' +
+          '<h3>Меняй код</h3>' +
+          '<textarea id="код" spellcheck="false"></textarea>' +
+          '<div class="палитры" id="палитры"></div>' +
+          '<div class="кнопки">' +
+            '<button class="go" id="запуск">▶ Запуск</button>' +
+            '<button class="сброс" id="сброс" title="Вернуть как было">↺</button>' +
+          '</div>' +
+          '<div class="ошибка" id="ошибка"></div>' +
+        '</div>';
     return '' +
       '<div class="обёртка">' +
         '<a class="назад" href="../index.html">← Все уроки</a>' +
@@ -39,16 +57,7 @@
               '<div class="оверлей-кнопки">' + следБтн + '<button class="ещё" id="ещё">Играть ещё</button></div>' +
             '</div>' +
           '</div>' +
-          '<div class="панель">' +
-            '<h3>Меняй код</h3>' +
-            '<textarea id="код" spellcheck="false"></textarea>' +
-            '<div class="палитры" id="палитры"></div>' +
-            '<div class="кнопки">' +
-              '<button class="go" id="запуск">▶ Запуск</button>' +
-              '<button class="сброс" id="сброс" title="Вернуть как было">↺</button>' +
-            '</div>' +
-            '<div class="ошибка" id="ошибка"></div>' +
-          '</div>' +
+          панель +
         '</div>' +
         '<div class="задания">' +
           '<h3>Задания</h3>' +
@@ -75,6 +84,7 @@
 
       var дв = Движок.старт(canvas, к.сцена || {});
       var апи = {};
+      var режимСлотов = !!к.строкиКода;
 
       var задания = к.задания.map(function (z) { return { текст: z.текст, подсказка: z.подсказка, проверка: z.проверка, done: false }; });
       var победили = false;
@@ -114,6 +124,7 @@
         if (обновитьUI() === задания.length) победа();
       }
 
+      // --- режим textarea: ребёнок пишет/правит код и жмёт Запуск ---
       function построить() {
         апи = к.сборка(дв.мир, дв) || {};
         var имена = Object.keys(апи);
@@ -133,25 +144,53 @@
       }
       function сброс() { код.value = к.стартовыйКод; ошибка.classList.remove("видна"); запустить(); }
 
-      код.value = к.стартовыйКод;
-
-      var группыПалитр = к.палитры || (к.палитра ? [к.палитра] : []);
-      группыПалитр.forEach(function (гр) {
-        if (гр.подпись) {
-          var п = document.createElement("p"); п.className = "палитра-подпись"; п.textContent = гр.подпись;
-          палитраБокс.appendChild(п);
-        }
-        var ряд = document.createElement("div"); ряд.className = "палитра";
-        (гр.эмодзи || []).forEach(function (e) {
-          var b = document.createElement("button"); b.type = "button"; b.textContent = e;
-          b.addEventListener("click", function () { код.value = гр.вставить(e, код.value); запустить(); });
-          ряд.appendChild(b);
+      // --- режим слотов: ребёнок крутит ручки прямо в коде, всё живо ---
+      var значения = {};
+      function перерисовать() {
+        try {
+          апи = к.применить(дв.мир, дв, значения) || {};
+          if (к.читалка) дв.установитьЧиталку(к.читалка(апи));
+          дв.поп(); проверить();
+        } catch (e) {}
+      }
+      function отрисоватьСлоты() {
+        var бокс = эл("код-слоты");
+        к.строкиКода.forEach(function (стр) { if (стр.слот) значения[стр.слот.ключ] = стр.слот.старт; });
+        к.строкиКода.forEach(function (стр) {
+          var строка = div("код-строка");
+          строка.appendChild(спан("код-текст", стр.текст));
+          var s = стр.слот;
+          if (s && s.вид === "выбор") {
+            var sel = document.createElement("select"); sel.className = "слот-выбор";
+            s.опции.forEach(function (o) {
+              var op = document.createElement("option"); op.value = o; op.textContent = o;
+              if (o === значения[s.ключ]) op.selected = true;
+              sel.appendChild(op);
+            });
+            sel.addEventListener("change", function () { значения[s.ключ] = sel.value; перерисовать(); });
+            строка.appendChild(sel);
+          } else if (s && s.вид === "число") {
+            var обёртка = спан("слот-число");
+            var minus = document.createElement("button"); minus.type = "button"; minus.className = "шаг"; minus.textContent = "−";
+            var знач = спан("значение", String(значения[s.ключ]));
+            var plus = document.createElement("button"); plus.type = "button"; plus.className = "шаг"; plus.textContent = "+";
+            var upd = function (d) {
+              var v = значения[s.ключ] + d * (s.шаг || 1);
+              if (s.мин != null && v < s.мин) v = s.мин;
+              if (s.макс != null && v > s.макс) v = s.макс;
+              значения[s.ключ] = v; знач.textContent = String(v); перерисовать();
+            };
+            minus.addEventListener("click", function () { upd(-1); });
+            plus.addEventListener("click", function () { upd(1); });
+            обёртка.appendChild(minus); обёртка.appendChild(знач); обёртка.appendChild(plus);
+            строка.appendChild(обёртка);
+          }
+          if (стр.хвост) строка.appendChild(спан("код-текст", стр.хвост));
+          бокс.appendChild(строка);
         });
-        палитраБокс.appendChild(ряд);
-      });
+      }
 
-      эл("запуск").addEventListener("click", запустить);
-      эл("сброс").addEventListener("click", сброс);
+      // общие кнопки (обе моды)
       эл("ещё").addEventListener("click", function () { оверлей.classList.remove("видна"); });
       эл("подсказать").addEventListener("click", function () {
         var z = null;
@@ -160,7 +199,26 @@
         подсказкаБокс.classList.add("видна");
       });
 
-      построить();
+      if (режимСлотов) {
+        отрисоватьСлоты();
+        перерисовать();
+      } else {
+        код.value = к.стартовыйКод;
+        var группыПалитр = к.палитры || (к.палитра ? [к.палитра] : []);
+        группыПалитр.forEach(function (гр) {
+          if (гр.подпись) { var pп = document.createElement("p"); pп.className = "палитра-подпись"; pп.textContent = гр.подпись; палитраБокс.appendChild(pп); }
+          var ряд = div("палитра");
+          (гр.эмодзи || []).forEach(function (e) {
+            var b = document.createElement("button"); b.type = "button"; b.textContent = e;
+            b.addEventListener("click", function () { код.value = гр.вставить(e, код.value); запустить(); });
+            ряд.appendChild(b);
+          });
+          палитраБокс.appendChild(ряд);
+        });
+        эл("запуск").addEventListener("click", запустить);
+        эл("сброс").addEventListener("click", сброс);
+        построить();
+      }
       обновитьUI();
     }
   };

@@ -2,7 +2,7 @@
    Здесь перечислены все уроки. Готовые (готов:true) открываются, остальные — «скоро».
    Чтобы добавить урок: сделай файл в lessons/, поставь ему готов:true и впиши файл. */
 window.КУРС = {
-  версия: "1.1.1",
+  версия: "1.2.0",
   репо: "https://github.com/ApsidD/kod-detyam",
   архив: "https://github.com/ApsidD/kod-detyam/archive/refs/heads/main.zip",
   проверкаОбновлений: "https://raw.githubusercontent.com/ApsidD/kod-detyam/main/version.json",
