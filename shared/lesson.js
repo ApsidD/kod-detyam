@@ -19,7 +19,6 @@
     var следБтн = следующий
       ? '<a class="дальше" href="' + следующий.файл + '">Дальше: ' + следующий.название + ' →</a>'
       : '<a class="дальше" href="../index.html">← К программе</a>';
-    var подписьПалитры = (к.палитра && к.палитра.подпись) ? '<p class="палитра-подпись">' + к.палитра.подпись + '</p>' : '';
     return '' +
       '<div class="обёртка">' +
         '<a class="назад" href="../index.html">← Все уроки</a>' +
@@ -43,8 +42,7 @@
           '<div class="панель">' +
             '<h3>Меняй код</h3>' +
             '<textarea id="код" spellcheck="false"></textarea>' +
-            подписьПалитры +
-            '<div class="палитра" id="палитра"></div>' +
+            '<div class="палитры" id="палитры"></div>' +
             '<div class="кнопки">' +
               '<button class="go" id="запуск">▶ Запуск</button>' +
               '<button class="сброс" id="сброс" title="Вернуть как было">↺</button>' +
@@ -73,7 +71,7 @@
 
       var canvas = эл("экран"), код = эл("код"), ошибка = эл("ошибка"), оверлей = эл("оверлей"),
           итог = эл("итог"), список = эл("список"), точкиБокс = эл("точки"), счёт = эл("счёт"),
-          палитраБокс = эл("палитра"), подсказкаБокс = эл("подсказка");
+          палитраБокс = эл("палитры"), подсказкаБокс = эл("подсказка");
 
       var дв = Движок.старт(canvas, к.сцена || {});
       var апи = {};
@@ -137,10 +135,19 @@
 
       код.value = к.стартовыйКод;
 
-      (к.палитра && к.палитра.эмодзи ? к.палитра.эмодзи : []).forEach(function (e) {
-        var b = document.createElement("button"); b.type = "button"; b.textContent = e;
-        b.addEventListener("click", function () { код.value = к.палитра.вставить(e, код.value); запустить(); });
-        палитраБокс.appendChild(b);
+      var группыПалитр = к.палитры || (к.палитра ? [к.палитра] : []);
+      группыПалитр.forEach(function (гр) {
+        if (гр.подпись) {
+          var п = document.createElement("p"); п.className = "палитра-подпись"; п.textContent = гр.подпись;
+          палитраБокс.appendChild(п);
+        }
+        var ряд = document.createElement("div"); ряд.className = "палитра";
+        (гр.эмодзи || []).forEach(function (e) {
+          var b = document.createElement("button"); b.type = "button"; b.textContent = e;
+          b.addEventListener("click", function () { код.value = гр.вставить(e, код.value); запустить(); });
+          ряд.appendChild(b);
+        });
+        палитраБокс.appendChild(ряд);
       });
 
       эл("запуск").addEventListener("click", запустить);

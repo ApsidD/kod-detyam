@@ -48,8 +48,9 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:14px;ba
 .панель h3{margin:0 0 8px;font-size:.82rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 textarea{width:100%;border:2px solid var(--line);border-radius:12px;padding:12px 14px;font-family:"Cascadia Code","SF Mono",Consolas,"Roboto Mono",monospace;font-size:1rem;line-height:1.85;color:var(--ink);background:#FBFAFF;resize:vertical;min-height:150px;tab-size:2}
 textarea:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 4px #F472B633}
-.палитра-подпись{font-size:.82rem;color:var(--muted);margin:12px 0 4px}
-.палитра{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.палитра-подпись{font-size:.82rem;color:var(--muted);margin:6px 0 2px}
+.палитры{display:flex;flex-direction:column;gap:4px;margin:10px 0}
+.палитра{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0}
 .палитра button{font-size:1.35rem;width:42px;height:42px;border:2px solid var(--line);background:#fff;border-radius:11px;cursor:pointer;line-height:1;transition:.12s}
 .палитра button:hover{border-color:var(--pink);transform:translateY(-2px)}
 .кнопки{display:flex;gap:10px;align-items:stretch;margin-top:4px}
