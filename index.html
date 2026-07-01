@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Код детям — учимся программировать, делая игры</title>
+<link rel="stylesheet" href="shared/styles.css">
+</head>
+<body>
+<div class="обёртка">
+
+  <div class="баннер" id="баннер">
+    <b>Вышло обновление курса!</b>
+    <span id="баннер-текст"></span>
+    <a id="баннер-ссылка" href="#" target="_blank" rel="noopener">Скачать новую версию</a>
+  </div>
+
+  <div class="шапка-гл">
+    <div>
+      <h1 class="лого">Код детям 🎮</h1>
+    </div>
+    <div class="сводка">
+      <div class="бол"><span id="сделано">0</span> / <span id="всего">0</span></div>
+      <div class="мел">уроков пройдено</div>
+    </div>
+  </div>
+  <p class="подзаголовок">Год программирования через сборку своих игр. Каждый урок — маленькая победа: что-то на экране оживает, потому что это написал ты.</p>
+
+  <div class="панель-прогресса">
+    <button id="сохранить">💾 Сохранить прогресс</button>
+    <button id="загрузить">📥 Загрузить прогресс</button>
+    <button id="сбросить" class="опасно">Сбросить</button>
+    <input type="file" id="файл-прогресса" accept="application/json,.json" hidden>
+  </div>
+
+  <div id="программа"></div>
+
+  <footer>
+    Свободно для личного и учебного использования — <b>не для продажи</b> (CC BY-NC-SA 4.0).
+    Обновления: сохрани прогресс, скачай новую версию и распакуй <b>поверх старой папки</b>. Подробнее — в README.
+  </footer>
+</div>
+
+<script src="shared/curriculum.js"></script>
+<script>
+(function () {
+  "use strict";
+  var КЛЮЧ = "kod-detyam:progress";
+  function прогресс() { try { return JSON.parse(localStorage.getItem(КЛЮЧ) || "{}"); } catch (e) { return {}; } }
+  function сохранить(p) { try { localStorage.setItem(КЛЮЧ, JSON.stringify(p)); } catch (e) {} }
+
+  var программа = document.getElementById("программа");
+
+  function отрисовать() {
+    var p = прогресс();
+    var сделано = 0, всего = 0;
+    var html = "";
+    КУРС.модули.forEach(function (м, mi) {
+      html += '<div class="модуль">';
+      html += '<div class="модуль-шапка"><span class="модуль-номер">МОДУЛЬ ' + (mi + 1) + '</span><h2 class="модуль-название">' + м.название + '</h2></div>';
+      html += '<p class="модуль-итог">' + м.итог + '</p>';
+      html += '<div class="уроки">';
+      м.уроки.forEach(function (u) {
+        всего++;
+        var сделан = p[u.номер] && p[u.номер].готов;
+        if (сделан) сделано++;
+        var классы = "карточка" + (сделан ? " сделан" : "") + (u.проект ? " проект" : "") + (u.готов ? "" : " скоро");
+        var значок = сделан ? "✓" : String(u.номер);
+        var метка = "";
+        if (сделан) метка = '<span class="метка готово-м">пройдено</span>';
+        else if (!u.готов) метка = '<span class="метка скоро-м">скоро</span>';
+        else if (u.проект) метка = '<span class="метка проект-м">🎯 проект</span>';
+        var внутри =
+          '<div class="значок-урока">' + значок + '</div>' +
+          '<div><div class="урок-название">' + u.название + '</div>' +
+          '<div class="урок-цель">' + u.цель + '</div>' + метка + '</div>';
+        if (u.готов) html += '<a class="' + классы + '" href="lessons/' + u.файл + '">' + внутри + '</a>';
+        else html += '<div class="' + классы + '">' + внутри + '</div>';
+      });
+      html += '</div></div>';
+    });
+    программа.innerHTML = html;
+    document.getElementById("сделано").textContent = сделано;
+    document.getElementById("всего").textContent = всего;
+  }
+  отрисовать();
+
+  // --- экспорт / импорт / сброс прогресса ---
+  document.getElementById("сохранить").addEventListener("click", function () {
+    var данные = { тип: "kod-detyam-progress", версия: КУРС.версия, прогресс: прогресс() };
+    var blob = new Blob([JSON.stringify(данные, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "progress.json"; a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+  document.getElementById("загрузить").addEventListener("click", function () { document.getElementById("файл-прогресса").click(); });
+  document.getElementById("файл-прогресса").addEventListener("change", function (e) {
+    var f = e.target.files[0]; if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        var d = JSON.parse(r.result);
+        var вх = d && d.прогресс ? d.прогресс : d;
+        var cur = прогресс();
+        Object.keys(вх).forEach(function (k) { if (вх[k] && вх[k].готов) cur[k] = вх[k]; });
+        сохранить(cur); отрисовать();
+        alert("Прогресс загружен ✅");
+      } catch (err) { alert("Не получилось прочитать файл прогресса."); }
+    };
+    r.readAsText(f);
+    e.target.value = "";
+  });
+  document.getElementById("сбросить").addEventListener("click", function () {
+    if (confirm("Сбросить весь прогресс? Это нельзя отменить.\nСовет: сначала нажми «Сохранить прогресс».")) {
+      localStorage.removeItem(КЛЮЧ); отрисовать();
+    }
+  });
+
+  // --- проверка обновлений (если есть интернет; офлайн — молча) ---
+  function больше(a, b) {
+    var x = String(a).split("."), y = String(b).split(".");
+    for (var i = 0; i < Math.max(x.length, y.length); i++) {
+      var d = (parseInt(x[i], 10) || 0) - (parseInt(y[i], 10) || 0);
+      if (d !== 0) return d > 0;
+    }
+    return false;
+  }
+  try {
+    fetch(КУРС.проверкаОбновлений, { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (v) {
+        if (v && v.version && больше(v.version, КУРС.версия)) {
+          document.getElementById("баннер-текст").textContent = "Версия " + v.version + " (у тебя " + КУРС.версия + ").";
+          document.getElementById("баннер-ссылка").href = КУРС.архив;
+          document.getElementById("баннер").classList.add("видна");
+        }
+      })
+      .catch(function () {});
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
